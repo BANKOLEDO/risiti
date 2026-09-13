@@ -13,9 +13,9 @@
   --color-leaf: #1e7a4c;
   --color-gold: #b98a1c;
   --color-warm: #ff5a2b;
-  --font-display: "Archivo Black", "Arial Narrow", ui-sans-serif, system-ui, sans-serif;
-  --font-body: ui-sans-serif, system-ui, sans-serif;
-  --font-mono-num: ui-monospace, "SF Mono", "Cascadia Code", Menlo, monospace;
+  --font-display: "Archivo Black", "Arial Narrow", ui-sans-serif, system-ui, sans-serif, "Segoe UI Symbol", "Noto Sans Symbols 2", "Apple Symbols";
+  --font-body: ui-sans-serif, system-ui, sans-serif, "Segoe UI Symbol", "Noto Sans Symbols 2", "Apple Symbols";
+  --font-mono-num: ui-monospace, "SF Mono", "Cascadia Code", Menlo, monospace, "Segoe UI Symbol", "Noto Sans Symbols 2", "Apple Symbols";
 }
 
 html {

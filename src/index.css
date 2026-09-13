@@ -28,7 +28,6 @@
   --font-body: ui-sans-serif, system-ui, sans-serif, "Risiti Symbols";
   --font-mono-num: ui-monospace, "SF Mono", "Cascadia Code", Menlo, monospace, "Risiti Symbols";
 }
-}
 
 html {
   scroll-behavior: smooth;

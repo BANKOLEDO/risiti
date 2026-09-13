@@ -71,11 +71,14 @@ contract RisitiPool {
     }
 
     function markDefault(uint256 aid) external {
+        require(aid < advances.length, "no such");
         Advance storage a = advances[aid];
         require(!a.settled, "settled");
         require(block.timestamp > a.dueAt, "not due");
+        require(msg.sender != a.borrower, "self declare"); // the borrower cannot default themselves
         a.settled = true;
         activeAdvance[a.borrower] = 0;
+        registry.reportDefault(a.borrower);
         emit Defaulted(aid, a.borrower);
     }
 

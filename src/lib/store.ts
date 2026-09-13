@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { SEED_SLIPS, SEED_STALLS, type DemoSlip, type SeedStall, type TraderVoice } from './seed'
+import { SEED_SLIPS, SEED_STALLS, photoForGoods, type DemoSlip, type SeedStall, type TraderVoice } from './seed'
 
 const KEY = 'risiti.slips.v3'
 const MODE_KEY = 'risiti.mode.v1'
@@ -116,7 +116,11 @@ function loadStalls(): SeedStall[] {
   try {
     const raw = localStorage.getItem(STALLS_KEY)
     if (raw) {
-      const mine = JSON.parse(raw) as SeedStall[]
+      const mine = (JSON.parse(raw) as SeedStall[]).map((s) =>
+        s.id.startsWith('my-') && s.photo === SEED_STALLS[0].photo && photoForGoods(s.goods) !== s.photo
+          ? { ...s, photo: photoForGoods(s.goods) }
+          : s,
+      )
       const ids = new Set(mine.map((s) => s.id))
       return [...mine, ...SEED_STALLS.filter((s) => !ids.has(s.id))]
     }

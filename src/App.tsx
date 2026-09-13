@@ -19,7 +19,7 @@ import { useAccount, useConnect, useDisconnect, useReadContract, useWaitForTrans
 import { ATTEST } from './lib/chain'
 import { CONTRACTS, POOL_ABI, REGISTRY_ABI } from './lib/contracts'
 import { formatEther, keccak256, parseEther } from 'viem'
-import { SEED_STALLS, CURRENCIES, TRADER_VOICES, type SeedStall } from './lib/seed'
+import { SEED_STALLS, CURRENCIES, TRADER_VOICES, photoForGoods, normMarket, type SeedStall } from './lib/seed'
 import { trustFromSlips, useRisitiStore, useStalls, useVoices, sellerStats } from './lib/store'
 import type { ChainSlip, ChainVoice } from './lib/chainfeed'
 import { shortHash, newSlipId, confirmCode } from './lib/format'
@@ -452,6 +452,7 @@ function AddStallForm({ trader, ccy, onAdd }: { trader: string; ccy: string; onA
   const [goods, setGoods] = useState('')
   const [price, setPrice] = useState('')
   const [photo, setPhoto] = useState(SEED_STALLS[0].photo)
+  const [picked, setPicked] = useState(false)
   const [err, setErr] = useState('')
   if (!open) {
     return (
@@ -475,7 +476,7 @@ function AddStallForm({ trader, ccy, onAdd }: { trader: string; ccy: string; onA
       owner: trader || 'You',
       market: market.trim(),
       avatar: dice(n),
-      photo,
+      photo: picked ? photo : photoForGoods(goods.trim()),
       goods: goods.trim(),
       price: `${ccy} ${price.trim()}`,
     })
@@ -516,7 +517,7 @@ function AddStallForm({ trader, ccy, onAdd }: { trader: string; ccy: string; onA
             <legend className="text-[13px] font-black uppercase tracking-widest">Pick a photo</legend>
             <div className="mt-1.5 grid grid-cols-4 gap-2">
               {SEED_STALLS.map((s) => (
-                <button key={s.id} type="button" onClick={() => setPhoto(s.photo)} aria-pressed={photo === s.photo}
+                <button key={s.id} type="button" onClick={() => { setPhoto(s.photo); setPicked(true) }} aria-pressed={photo === s.photo}
                   className={`${photo === s.photo ? 'ring-4 ring-[#ff3c1a]' : ''}`}>
                   <img src={s.photo} alt={s.name} className="photo-warm h-14 w-full object-cover" loading="lazy" />
                 </button>
@@ -585,9 +586,14 @@ function Privacy() {
 }
 
 function MarketStrip({ stalls, onPick }: { stalls: ReturnType<typeof useStalls>['stalls']; onPick: (id: string) => void }) {
-  const markets = ['All', ...Array.from(new Set(stalls.map((s) => s.market)))]
+  const seen = new Map<string, string>()
+  for (const s of stalls) {
+    const k = normMarket(s.market)
+    if (!seen.has(k)) seen.set(k, s.market.trim())
+  }
+  const markets = ['All', ...seen.values()]
   const [filter, setFilter] = useState('All')
-  const shown = filter === 'All' ? stalls : stalls.filter((s) => s.market === filter)
+  const shown = filter === 'All' ? stalls : stalls.filter((s) => normMarket(s.market) === normMarket(filter))
   return (
     <section id="market" aria-labelledby="market-h" className="mx-auto max-w-6xl px-4 pt-4">
       <div className="flex items-end gap-3">
@@ -775,7 +781,7 @@ export default function App() {
         owner: name || 'You',
         market: stall.market,
         avatar: dice(stall.name),
-        photo: SEED_STALLS[0].photo,
+        photo: photoForGoods(stall.goods),
         goods: stall.goods,
         price: 'Varies',
       })

@@ -15,6 +15,26 @@ const dice = (seed: string) =>
 const u = (id: string) =>
   `https://images.unsplash.com/${id}?q=60&w=640&auto=format&fit=crop`
 
+/** Stall photo picked from what the trader actually sells — a tech company never gets rice. */
+export function photoForGoods(goods: string): string {
+  const g = goods.toLowerCase()
+  const has = (...ws: string[]) => ws.some((w) => g.includes(w))
+  if (has('tech', 'phone', 'laptop', 'computer', 'gadget', 'electronic', 'software', 'repair', 'data', 'cable')) return u('photo-1518770660439-4636190af475')
+  if (has('fabric', 'cloth', 'ankara', 'fashion', 'tailor', 'sew', 'aso', 'wear')) return u('photo-1523381210434-271e8be1f52b')
+  if (has('rice', 'grain', 'bean', 'maize')) return u('photo-1586201375761-83865001e31c')
+  if (has('tomato')) return u('photo-1592924357228-91a4daadcfea')
+  if (has('sukuma', 'green', 'vegetable', 'leaf', 'spinach', 'cabbage')) return u('photo-1488459716781-31db52582fe9')
+  if (has('onion')) return u('photo-1518843875459-f738682238a6')
+  if (has('spice', 'pepper', 'curry', 'thyme')) return u('photo-1596040033229-a9821ebd058d')
+  if (has('oil', 'soap', 'sugar', 'provision', 'detergent')) return u('photo-1542838132-92c53300491e')
+  if (has('fruit', 'orange', 'mango', 'apple', 'banana')) return u('photo-1610348725531-843dff563e2c')
+  return u('photo-1542838132-92c53300491e')
+}
+
+/** One market typed two ways ("Mile 12, Lagos" vs "Mile 12 · Lagos") is the same chip. */
+export const normMarket = (m: string) =>
+  m.toLowerCase().replace(/[·,|/\\\-–—]/g, ' ').replace(/\s+/g, ' ').trim()
+
 export const SEED_STALLS: SeedStall[] = [
   {
     id: 'amina',

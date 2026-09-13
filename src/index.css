@@ -1,0 +1,159 @@
+@import "tailwindcss";
+
+@theme {
+  --color-paper: #faf5ea;
+  --color-paper-deep: #efe5d0;
+  --color-card: #fffdf7;
+  --color-ink: #1c1610;
+  --color-muted: #6f6557;
+  --color-line: #ddd2bd;
+  --color-ctc: #0b3dff;
+  --color-ctc-deep: #082fb8;
+  --color-stamp: #d93a1e;
+  --color-leaf: #1e7a4c;
+  --color-gold: #b98a1c;
+  --color-warm: #ff5a2b;
+  --font-display: "Archivo Black", "Arial Narrow", ui-sans-serif, system-ui, sans-serif;
+  --font-body: ui-sans-serif, system-ui, sans-serif;
+  --font-mono-num: ui-monospace, "SF Mono", "Cascadia Code", Menlo, monospace;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Warm ruled-paper texture, no AI gradients */
+.ledger-bg {
+  background-image:
+    linear-gradient(to right, rgba(28, 22, 16, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(28, 22, 16, 0.05) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+.ink-card {
+  background: var(--color-card);
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.ink-card-flat {
+  background: var(--color-card);
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.hard-btn {
+  border: none;
+  box-shadow: none;
+  transition: transform 120ms ease, opacity 120ms ease;
+  min-height: 48px;
+}
+.hard-btn:hover {
+  transform: none;
+  box-shadow: none;
+  filter: brightness(1.06);
+}
+.hard-btn:active {
+  transform: scale(0.99);
+  box-shadow: none;
+}
+.hard-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.tabular {
+  font-family: var(--font-mono-num);
+  font-variant-numeric: tabular-nums;
+}
+
+.stamp-seal {
+  border: 2px solid var(--color-stamp);
+  color: var(--color-stamp);
+  transform: rotate(-6deg);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+
+.dashed-rule {
+  display: none;
+}
+
+/* Mobile snap strip for market stalls */
+.snap-strip {
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+.snap-strip > * {
+  scroll-snap-align: start;
+}
+
+.photo-warm {
+  filter: saturate(1.12) contrast(1.05);
+}
+
+.print-only {
+  display: none;
+}
+
+@media print {
+  .screen-only {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+    color: #000;
+  }
+  body {
+    background: #fff;
+  }
+}
+
+/* Kensei sheet: white rounded container overlapping dark hero */
+.sheet-overlap {
+  margin-top: -2.5rem;
+  border-radius: 1.75rem 1.75rem 0 0;
+}
+
+/* Webtrix ticker */
+@keyframes ticker-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.ticker-track {
+  animation: ticker-scroll 28s linear infinite;
+}
+
+.glass-dark {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(12px);
+}
+
+.display-tight {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-ctc);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}

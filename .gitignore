@@ -12,6 +12,7 @@ dist
 dist-ssr
 *.local
 .env
+SUBMISSION.md
 
 # Editor directories and files
 .vscode/*

@@ -125,6 +125,8 @@ the spot. On-chain twin: `confirmVerbal` (third-party rule enforced in code).
 score = 300 + min(confirmed × 50, 500) + min(volume ÷ 0.05, 60)
         + co-signs × 8 + verified top-ups × 12 − defaults × 120
 clamped to 300..900
+
+Chama rule: one default revokes further advances (`defaults > 0` → limit 0).
 ```
 
 | Score | Advance |

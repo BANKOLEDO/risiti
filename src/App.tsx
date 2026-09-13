@@ -15,7 +15,7 @@ import {
   UserGroupIcon,
   WalletIcon,
 } from '@heroicons/react/24/outline'
-import { useAccount, useConnect, useDisconnect, useReadContract, useWaitForTransactionReceipt, useWriteContract } from 'wagmi'
+import { useAccount, useConnect, useDisconnect, useReadContract, useSwitchChain, useWaitForTransactionReceipt, useWriteContract } from 'wagmi'
 import { ATTEST } from './lib/chain'
 import { CONTRACTS, POOL_ABI, REGISTRY_ABI } from './lib/contracts'
 import { formatEther, keccak256, parseEther } from 'viem'
@@ -23,7 +23,7 @@ import { SEED_STALLS, CURRENCIES, TRADER_VOICES, photoForGoods, normMarket, type
 import { trustFromSlips, useRisitiStore, useStalls, useVoices, sellerStats } from './lib/store'
 import type { ChainSlip, ChainVoice } from './lib/chainfeed'
 import { shortHash, newSlipId, confirmCode } from './lib/format'
-import type { AttestState } from './lib/attest'
+import type { AttestState, RestockProof } from './lib/attest'
 
 const dice = (seed: string) =>
   `https://api.dicebear.com/9.x/adventurer/svg?seed=${encodeURIComponent(seed)}&backgroundColor=ffd5dc,ffdfbf,c0aede,b6e3f4`
@@ -41,6 +41,7 @@ const TABS: { id: Screen; label: string }[] = [
 function TopBar({ mode, setMode, screen, setScreen, trader }: { mode: 'demo' | 'real'; setMode: (m: 'demo' | 'real') => void; screen: Screen; setScreen: (s: Screen) => void; trader: string }) {
   const { address, isConnected, chainId } = useAccount()
   const onTestnet = chainId === 102031
+  const onSepolia = chainId === 11155111
   const { connect, connectors } = useConnect()
   const { disconnect } = useDisconnect()
   return (
@@ -101,16 +102,16 @@ function TopBar({ mode, setMode, screen, setScreen, trader }: { mode: 'demo' | '
             Connect
           </button>
         )}
-        <span className={`hidden items-center gap-1.5 rounded-full px-3 py-2 text-[11px] font-black uppercase tracking-widest md:inline-flex ${!isConnected ? 'bg-[var(--color-paper-deep)] text-[var(--color-muted)]' : onTestnet ? 'bg-[var(--color-leaf)]/15 text-[var(--color-leaf)]' : 'bg-[var(--color-stamp)]/15 text-[var(--color-stamp)]'}`}
+        <span className={`hidden items-center gap-1.5 rounded-full px-3 py-2 text-[11px] font-black uppercase tracking-widest md:inline-flex ${!isConnected ? 'bg-[var(--color-paper-deep)] text-[var(--color-muted)]' : onTestnet ? 'bg-[var(--color-leaf)]/15 text-[var(--color-leaf)]' : onSepolia ? 'bg-[var(--color-ctc)]/15 text-[var(--color-ctc-deep)]' : 'bg-[var(--color-stamp)]/15 text-[var(--color-stamp)]'}`}
           role="status">
-          <span className={`inline-block h-2 w-2 rounded-full ${!isConnected ? 'bg-[var(--color-muted)]' : onTestnet ? 'bg-[var(--color-leaf)]' : 'bg-[var(--color-stamp)]'}`} />
-          {!isConnected ? 'No wallet' : onTestnet ? 'Testnet · 102031' : 'Wrong network'}
+          <span className={`inline-block h-2 w-2 rounded-full ${!isConnected ? 'bg-[var(--color-muted)]' : onTestnet ? 'bg-[var(--color-leaf)]' : onSepolia ? 'bg-[var(--color-ctc)]' : 'bg-[var(--color-stamp)]'}`} />
+          {!isConnected ? 'No wallet' : onTestnet ? 'Testnet · 102031' : onSepolia ? 'Sepolia · 11155111' : 'Wrong network'}
         </span>
       </div>
       <div className="flex items-center gap-2 border-t border-[var(--color-line)] px-3 py-1.5 sm:hidden">
-        <span className={`inline-block h-2 w-2 rounded-full ${!isConnected ? 'bg-[var(--color-muted)]' : onTestnet ? 'bg-[var(--color-leaf)]' : 'bg-[var(--color-stamp)]'}`} />
+        <span className={`inline-block h-2 w-2 rounded-full ${!isConnected ? 'bg-[var(--color-muted)]' : onTestnet ? 'bg-[var(--color-leaf)]' : onSepolia ? 'bg-[var(--color-ctc)]' : 'bg-[var(--color-stamp)]'}`} />
         <span className="tabular text-[10.5px] font-bold uppercase tracking-widest text-[var(--color-muted)]">
-          {!isConnected ? 'No wallet' : onTestnet ? 'Testnet · 102031 · live' : 'Wrong network · switch to 102031'}
+          {!isConnected ? 'No wallet' : onTestnet ? 'Testnet · 102031 · live' : onSepolia ? 'Sepolia · 11155111' : 'Wrong network · switch to 102031'}
         </span>
         {isConnected ? (
           <button type="button" onClick={() => disconnect()} className="ml-auto min-h-[36px] rounded-full bg-[var(--color-card)] px-3 text-[11px] font-black" title={address}>
@@ -792,7 +793,9 @@ export default function App() {
   const [pot, setPot] = useState(12.5)
   const [advance, setAdvance] = useState(0)
   const [realAdvance, setRealAdvance] = useState('0')
-  const { address: myAddr, isConnected: walletOn } = useAccount()
+  const { address: myAddr, isConnected: walletOn, chainId: appChainId } = useAccount()
+  const onTestnet = appChainId === 102031
+  const onSepolia = appChainId === 11155111
   const live = mode === 'real' && !!CONTRACTS.pool && walletOn
   const poolAddr = (CONTRACTS.pool || '0x0000000000000000000000000000000000000000') as `0x${string}`
   const { data: chainPot, refetch: refetchPot } = useReadContract({
@@ -810,8 +813,10 @@ export default function App() {
   })
   const { writeContract, data: potTx, status: potTxStatus, error: potTxError } = useWriteContract()
   const { isSuccess: potConfirmed } = useWaitForTransactionReceipt({ hash: potTx })
-  const { writeContract: writeBoost, data: boostTx } = useWriteContract()
+  const { writeContract: writeBoost, data: boostTx, isPending: boostPending } = useWriteContract()
+  const { switchChain } = useSwitchChain()
   const { isSuccess: boostConfirmed } = useWaitForTransactionReceipt({ hash: boostTx })
+  const netName = onTestnet ? 'Creditcoin testnet' : onSepolia ? 'Sepolia' : 'another network'
   const { writeContract: writeRx, data: rxTx, status: rxStatus } = useWriteContract()
   const { isSuccess: rxConfirmed } = useWaitForTransactionReceipt({ hash: rxTx })
   useEffect(() => {
@@ -821,6 +826,26 @@ export default function App() {
   const chainPotTctc = typeof chainPot === 'bigint' ? Number(formatEther(chainPot)) : null
   const [sepoliaTx, setSepoliaTx] = useState('')
   const [proof, setProof] = useState<AttestState>({ status: 'idle' })
+  const proofRef = useRef<RestockProof | null>(null)
+  const submitBoost = () => {
+    const r = proofRef.current
+    if (!r || !myAddr || !CONTRACTS.registry) return
+    setProof({ status: 'verifying', step: 'Submitting to the Registry…' })
+    writeBoost({
+      address: CONTRACTS.registry as `0x${string}`,
+      abi: REGISTRY_ABI,
+      functionName: 'linkRestockProof',
+      args: [
+        myAddr,
+        BigInt(r.chainKey),
+        BigInt(r.headerNumber),
+        r.txBytes as `0x${string}`,
+        r.merkleProof as never,
+        r.continuityProof as never,
+        keccak256(sepoliaTx as `0x${string}`),
+      ],
+    })
+  }
   const t = useMemo(() => trustFromSlips(slips, trader ? [trader] : []), [slips, trader])
   const postVoice = (v: { who: string; trade: string; quote: string }) => {
     addVoice(v)
@@ -1378,29 +1403,14 @@ export default function App() {
                 const { proveSepoliaRestock } = await import('./lib/attest')
                 const r = await proveSepoliaRestock(sepoliaTx, setProof)
                 if (!r) return
-                if (live && myAddr && CONTRACTS.registry) {
-                  setProof({ status: 'verifying', step: 'Proof checks out · submitting to the Registry…' })
-                  writeBoost({
-                    address: CONTRACTS.registry as `0x${string}`,
-                    abi: REGISTRY_ABI,
-                    functionName: 'linkRestockProof',
-                    args: [
-                      myAddr,
-                      BigInt(r.chainKey),
-                      BigInt(r.headerNumber),
-                      r.txBytes as `0x${string}`,
-                      r.merkleProof as never,
-                      r.continuityProof as never,
-                      keccak256(sepoliaTx as `0x${string}`),
-                    ],
-                  })
-                  return
-                }
+                proofRef.current = r
                 setProof({ status: 'verified', txHash: sepoliaTx, blockNumber: r.blockNumber, proofHash: `${r.chainKey}:${r.headerNumber}`, explorer: 'https://creditcoin-testnet.blockscout.com/' })
-                attest(slips.find((s) => !s.attested)?.id ?? '')
+                if (!(live && myAddr && CONTRACTS.registry)) {
+                  attest(slips.find((s) => !s.attested)?.id ?? '')
+                }
               }}
               className="hard-btn min-h-[52px] self-end bg-[var(--color-ctc)] px-6 text-[15px] font-black text-white sm:whitespace-nowrap">
-              Verify · boost +2
+              Verify payment
             </button>
           </div>
           <p className="mt-1.5 text-[12.5px] font-semibold text-[var(--color-muted)]">Where the code lives: MetaMask → Activity → your transfer → copy the 0x hash.</p>
@@ -1411,11 +1421,41 @@ export default function App() {
             )}
             {proof.status === 'verified' && (
               <span className="inline-flex flex-wrap items-center gap-2 text-[var(--color-leaf)]">
-                <ShieldCheckIcon className="h-5 w-5" aria-hidden /> Verified · your standing just grew.
+                <ShieldCheckIcon className="h-5 w-5" aria-hidden />
+                {live && myAddr && CONTRACTS.registry
+                  ? 'Verified · submit it to your Registry below.'
+                  : 'Verified · your standing just grew.'}
               </span>
             )}
             {proof.status === 'failed' && <span className="text-[var(--color-stamp)]">Hmm · {proof.error}</span>}
           </div>
+          {proof.status === 'verified' && live && myAddr && CONTRACTS.registry && (
+            <div className="mt-3 rounded-xl border-2 border-[var(--color-leaf)]/40 bg-[var(--color-leaf)]/5 p-3">
+              <p className="text-[14px] font-black">One step left · submit the proof</p>
+              <p className="mt-0.5 text-[12.5px] font-semibold text-[var(--color-muted)]">This locks the +2 sales on-chain and unlocks the top tier (750+ → 5 tCTC). Wallet must be on Creditcoin testnet.</p>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                {onTestnet ? (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-leaf)]/15 px-3 py-1.5 text-[11px] font-black uppercase tracking-widest text-[var(--color-leaf)]"><span className="inline-block h-2 w-2 rounded-full bg-[var(--color-leaf)]" />Creditcoin testnet · ready</span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-stamp)]/15 px-3 py-1.5 text-[11px] font-black uppercase tracking-widest text-[var(--color-stamp)]"><span className="inline-block h-2 w-2 rounded-full bg-[var(--color-stamp)]" />Wallet on {netName} · switch first</span>
+                )}
+                {!onTestnet && (
+                  <button type="button" onClick={() => switchChain({ chainId: 102031 })} className="min-h-[44px] rounded-full bg-[var(--color-ctc)] px-4 text-[12px] font-black uppercase tracking-widest text-white">
+                    Switch to Creditcoin testnet
+                  </button>
+                )}
+              </div>
+              <button type="button" onClick={submitBoost} disabled={boostPending || !onTestnet}
+                className="hard-btn mt-2 min-h-[48px] w-full bg-[var(--color-leaf)] px-4 text-[14px] font-black text-white disabled:opacity-50 sm:w-auto">
+                {boostPending ? 'Submitting…' : 'Submit proof on-chain'}
+              </button>
+              {boostConfirmed && (
+                <p className="mt-2 inline-flex flex-wrap items-center gap-2 text-[13px] font-black text-[var(--color-leaf)]">
+                  <CheckBadgeIcon className="h-5 w-5" aria-hidden /> On-chain · +2 sales locked. It's on Blockscout.
+                </p>
+              )}
+            </div>
+          )}
           <button type="button" onClick={() => { setKind('stock'); setForm((f) => ({ ...f, goods: 'Stock from supplier' })); go('new') }}
             className="mt-2 min-h-[48px] w-full border border-[var(--color-ink)] bg-white px-4 text-[14px] font-black sm:w-auto">
             Paid cash or transfer? Record it as a supplier receipt instead
@@ -1424,7 +1464,8 @@ export default function App() {
             <summary className="cursor-pointer font-black">How does the check work?</summary>
             <p className="mt-2 leading-relaxed text-[var(--color-muted)]">
               We find your payment on Sepolia, wait until Creditcoin confirms that block (about 9 minutes),
-              then verify the proof on-chain. A verified top-up counts like two extra sales.
+              then verify the proof on-chain. Once verified, switch the wallet to Creditcoin testnet and
+              submit the proof — that's the step that counts as two extra sales and unlocks the top tier.
               Watch it happen on the <a className="underline" href={ATTEST.dashboard} target="_blank" rel="noreferrer">network dashboard</a>.
             </p>
           </details>

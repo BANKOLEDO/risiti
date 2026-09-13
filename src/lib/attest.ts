@@ -79,3 +79,5 @@ export function shortHash(h: string, n = 6) {
   if (!h) return '—'
   return `${h.slice(0, 2 + n)}…${h.slice(-4)}`
 }
+
+export type RestockProof = Exclude<Awaited<ReturnType<typeof proveSepoliaRestock>>, null>

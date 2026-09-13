@@ -33,6 +33,8 @@ interface IBlockProver {
 contract RisitiRegistry {
     address public constant BLOCK_PROVER = 0x0000000000000000000000000000000000000FD2;
     bool public demoMode = true;
+    address public deployer;
+    address public pool; // linked RisitiPool, sole reporter of defaults
 
     struct Risiti {
         uint256 id;
@@ -68,6 +70,26 @@ contract RisitiRegistry {
     error NotBuyer();
     error AlreadyConfirmed();
     error SelfTrade();
+
+    constructor() {
+        deployer = msg.sender;
+    }
+
+    modifier onlyPool() {
+        require(msg.sender == pool && pool != address(0), "not pool");
+        _;
+    }
+
+    /// @notice Bind the community pool so it may report defaults.
+    function setPool(address poolAddr) external {
+        require(msg.sender == deployer, "not deployer");
+        pool = poolAddr;
+    }
+
+    /// @notice Chama rule: one default slashes score and revokes further advances.
+    function reportDefault(address borrower) external onlyPool {
+        defaults[borrower] += 1;
+    }
 
     function setDemoMode(bool on) external {
         demoMode = on;
@@ -192,6 +214,7 @@ contract RisitiRegistry {
 
     /// @notice Advance limit tiers from score. Top tier needs a verified restock.
     function advanceLimit(address who) external view returns (uint256) {
+        if (defaults[who] > 0) return 0; // one default: advances revoked
         (uint256 s, , ) = this.trustScore(who);
         if (s >= 750) return verifiedRestocks[who] > 0 ? 5 ether : 2 ether;
         if (s >= 620) return 2 ether;

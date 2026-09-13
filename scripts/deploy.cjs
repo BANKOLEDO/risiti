@@ -91,6 +91,16 @@ async function main() {
   const verifier = await deploy('AttestcoinVerifier');
   const pool = await deploy('RisitiPool', [registry]);
 
+  console.log('Binding pool into registry…');
+  const bh = await wallet.writeContract({
+    address: registry,
+    abi: art['RisitiRegistry'].abi,
+    functionName: 'setPool',
+    args: [pool],
+  });
+  await publicClient.waitForTransactionReceipt({ hash: bh });
+  console.log('Pool bound ->', pool);
+
   const envPath = '.env';
   let env = '';
   try {
